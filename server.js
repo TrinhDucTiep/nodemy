@@ -2,6 +2,11 @@ const express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
 const AccountModel = require('./models/account');
+const path = require('path');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+
+app.use(cookieParser());
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -24,6 +29,32 @@ app.post('/register', (req, res, next) => {
         })
 });
 
+// app.post('/login', (req, res, next) => {
+//     var username = req.body.username;
+//     var password = req.body.password;
+
+//     AccountModel.findOne({
+//         username: username,
+//         password: password
+//     })
+//         .then(data => {
+//             if (data) {
+//                 res.json('Login successfully');
+//             } else {
+//                 res.json('Wrong password or username');
+//             }
+//         })
+//         .catch(err => {
+//             res.status(500).json('Some thing wrong with server');
+//         })
+// });
+
+// GET LOGIN
+app.get('/login', (req, res, next) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+// POST LOGIN
 app.post('/login', (req, res, next) => {
     var username = req.body.username;
     var password = req.body.password;
@@ -34,14 +65,35 @@ app.post('/login', (req, res, next) => {
     })
         .then(data => {
             if (data) {
-                res.json('Login successfully');
+                var token = jwt.sign({
+                    _id: data._id
+                }, 'mk');
+                return res.json({
+                    message: 'Login successsfully',
+                    token: token,
+                });
             } else {
-                res.json('Wrong password or username');
+                return res.json('Login failed');
             }
         })
         .catch(err => {
-            res.status(500).json('Some thing wrong with server');
-        })
+            res.status(500).json('Error from server');
+        });
+});
+
+app.get('/private', (req, res, next) => {
+    try {
+        var token = req.cookies.token;
+        var result = jwt.verify(token, 'mk');
+        if (result) {
+            next();
+        }
+    } catch (err) {
+        return res.redirect('/login');
+    }
+
+}, (req, res, next) => {
+    res.json('Welcome')
 });
 
 app.get('/', (req, res, next) => {
