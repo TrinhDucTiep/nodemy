@@ -128,6 +128,73 @@ app.get('/user', (req, res, next) => {
     }
 });
 
+
+// luyện tập phân quyền
+
+var chechLogin = (req, res, next) => {
+    try {
+        var token = req.cookies.token;
+        var idUser = jwt.verify(token, 'mk');
+        AccountModel.findOne({
+            _id: idUser
+        })
+            .then(data => {
+                if (data) {
+                    req.data = data;
+                    next();
+                } else {
+                    res.json('NOT PERMISSION');
+                }
+            })
+            .catch(err => {
+
+            });
+    } catch (error) {
+        res.status(500).json('Token is invalid')
+    }
+}
+
+var checkStudent = (req, res, next) => {
+    var role = req.data.role
+    if (role === 'student' || role === 'teacher' || role === 'manager') {
+        next();
+    } else {
+        res.json('NOT PERMISSION');
+    }
+}
+
+var checkTeacher = (req, res, next) => {
+    if (req.data.role === 'teacher' || req.data.role === 'manager') {
+        next();
+    } else {
+        res.json('NOT PERMISSION');
+    }
+}
+
+var checkManager = (req, res, next) => {
+    if (req.data.role === 'manager') {
+        next();
+    } else {
+        res.json('NOT PERMISSION');
+    }
+}
+
+app.get('/task', chechLogin, checkStudent, (req, res, next) => {
+    res.json('Task');
+});
+
+app.get('/student', chechLogin, checkTeacher, (req, res, next) => {
+    next();
+}, (req, res, next) => {
+    res.json('STUDENT');
+});
+
+app.get('/teacher', chechLogin, checkManager, (req, res, next) => {
+    next();
+}, (req, res, next) => {
+    res.json('TEACHER');
+});
+
 app.listen(3000, () => {
     console.log("Server is running on port 3000");
 });
